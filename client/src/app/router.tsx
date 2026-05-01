@@ -11,6 +11,7 @@ import { DepartmentEditPage } from "@/pages/departments/DepartmentEditPage";
 import { DepartmentViewPage } from "@/pages/departments/DepartmentViewPage";
 import { ServiceRecordsListPage } from "@/pages/serviceRecords/ServiceRecordsListPage";
 import { ServiceRecordCreatePage } from "@/pages/serviceRecords/ServiceRecordCreatePage";
+import { UsersDemoPage } from "@/pages/usersDemo/UsersDemoPage";
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +32,8 @@ export const router = createBrowserRouter([
 
       { path: "service-records", element: <ServiceRecordsListPage /> },
       { path: "service-records/new", element: <ServiceRecordCreatePage /> },
+
+      { path: "users-demo", element: <UsersDemoPage /> },
 
       { path: "*", element: <NotFoundPage /> },
     ],

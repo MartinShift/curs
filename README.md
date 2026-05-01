@@ -1,6 +1,6 @@
 # Керування користувачами — клієнт-серверний застосунок
 
-Практична робота: «Архітектура та модульна організація».
+Практичні роботи 04 («Архітектура та модульна організація») і 05 («Розширення архітектури станом застосунку»).
 
 Реалізовано повноцінний клієнт-серверний застосунок для керування записами користувачів із підрозділами та службовими записами. Реалізація виконана відповідно до C4-діаграм (контейнерна, дві компонентні та діаграма послідовності) і повторює описаний в них поділ на шари.
 
@@ -166,6 +166,81 @@ UsersListPage  →  usersService.loadUsers(query)
 | `npm run build`     | Збірка для продакшену                         |
 | `npm run preview`   | Локальний попередній перегляд продакшн-збірки |
 | `npm run typecheck` | Перевірка типів без компіляції                |
+
+## Практична робота 05 — Централізований стан клієнта
+
+У межах Пр05 додано окремий **рівень керування станом** користувачів, що відповідає рекомендованій архітектурі (рис. 1–3 з методичних вказівок). Старі сторінки CRUD з Пр04 залишені без змін; новий референсний інтерфейс доступний за маршрутом `/users-demo` (пункт меню «Демо стану (Пр.05)»).
+
+### Структура нових модулів
+
+```
+client/src/
+  state/users/
+    types.ts              # UsersState ({ data, ui, status }), UsersAction, initialUsersState
+    reducer.ts            # usersReducer — чиста функція без побічних ефектів
+    UsersContext.tsx      # split-context (state | dispatch | reload) + UsersProvider з useEffect-синхронізацією
+    useUsers.ts           # координаційний hook: state + setSearch/setPage/selectUser/createUser/updateUser/deleteUser
+  pages/usersDemo/
+    UsersDemoPage.tsx     # composition root, обгортає в <UsersProvider>
+    components/
+      StatusCard.tsx      # «Стан запиту» — IDLE / LOADING / SUCCESS / ERROR
+      FilterPanel.tsx     # пошук + «Скинути вибір»
+      UserList.tsx        # список UserCard, статус-бейдж, помилка
+      UserCard.tsx        # окрема картка (Редагувати / Видалити)
+      UserForm.tsx        # форма створення/редагування (реагує на selectedUser)
+      DemoPagination.tsx  # «Усього записів: N. Сторінка X із Y»
+```
+
+### Модель стану
+
+```ts
+interface UsersState {
+  data: { users: User[]; selectedUser: User | null; meta: UsersMeta | null };
+  ui:   { search: string; page: number; pageSize: number };
+  status: "idle" | "loading" | "success" | "error";
+  error: string | null;
+}
+```
+
+### Перелік дій (actions)
+
+| Action | Опис |
+| ------ | ---- |
+| `LOAD_START` | Розпочато запит до API → `status: "loading"` |
+| `LOAD_SUCCESS` | Дані отримано → `status: "success"`, оновлення `data.users` і `data.meta` |
+| `LOAD_ERROR` | Помилка → `status: "error"`, `error: message` |
+| `SELECT_USER` | Вибір користувача для редагування / скидання вибору |
+| `SET_SEARCH` | Зміна тексту пошуку (скидає `ui.page` у 1) |
+| `SET_PAGE` | Перехід на іншу сторінку пагінації |
+| `USER_CREATED` / `USER_UPDATED` / `USER_DELETED` | Локальне оновлення списку після CRUD |
+
+### Потік даних
+
+```
+Користувач  ─►  UI-компоненти  ─►  useUsers (координація)
+                       ▲                  │
+                       │                  ▼
+                 (новий стан)     UsersContext + usersReducer
+                       ▲                  │
+                       │                  ▼
+                       └────────  usersApi  ◄──►  REST API сервер
+```
+
+- Усі компоненти отримують дані виключно з `useUsers()` (жодного prop drilling).
+- `UsersProvider` через `useEffect` синхронізує стан з API при зміні `ui.search` або `ui.page` (із debounce 300мс), а також при інкременті внутрішнього `reloadToken` після CRUD-операцій.
+- `usersReducer` — чиста функція без побічних ефектів; усі переходи описані явно через `switch` по `action.type`.
+- Контексти розділено на три (`state`, `dispatch`, `reload`), щоб компоненти, яким потрібен лише `dispatch`/`reload`, не перерендерювалися на зміни даних.
+
+### Відповідність вимогам ТЗ Пр05
+
+- Стан як **окремий артефакт** — директорія `state/users/`.
+- Структура `{ data, ui, status }` — відображено в `UsersState`.
+- `useReducer` з **чистою функцією редуктора** і явним переліком actions.
+- `useContext` для розповсюдження стану без prop drilling (split-pattern).
+- `useEffect` для синхронізації з API; debounce пошуку і автоматичний refetch після CRUD.
+- Власний хук `useUsers` як єдина точка доступу для UI.
+- Loading / error indication — `StatusCard` + інлайн-баннер у `UserList`.
+- Без циклічних залежностей: потік `api → state → coordination → presentation` односторонній.
 
 ## Як це відповідає ТЗ
 

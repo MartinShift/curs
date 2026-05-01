@@ -31,6 +31,14 @@ export const AppLayout = () => {
           >
             Службові записи
           </NavLink>
+          <NavLink
+            to="/users-demo"
+            className={({ isActive }) =>
+              isActive ? "app-nav__link app-nav__link--active" : "app-nav__link"
+            }
+          >
+            Демо стану (Пр.05)
+          </NavLink>
         </nav>
       </header>
       <main className="app-main">
