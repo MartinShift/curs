@@ -1,6 +1,14 @@
 # Керування користувачами — клієнт-серверний застосунок
 
-Практичні роботи 04 («Архітектура та модульна організація») і 05 («Розширення архітектури станом застосунку»).
+Практичні роботи 04 («Архітектура та модульна організація»), 05 («Розширення архітектури станом застосунку») і 06 («Централізоване керування станом бекенду» — Redux Toolkit).
+
+## Структура
+
+- [server/](server) — Node.js + Express + Prisma + PostgreSQL (Пр.04, переиспользуется усіма клієнтами)
+- [client/](client) — React + Vite (Пр.04 + Пр.05: useReducer + Context, демо за `/users-demo`)
+- [client-redux/](client-redux) — React + Vite + **Redux Toolkit** (Пр.06: configureStore + slices + thunks + persistence)
+
+Усі три можна запускати одночасно: backend на :4000, client на :5173, client-redux на :5174 — обидва клієнти проксують `/api` на той самий backend.
 
 Реалізовано повноцінний клієнт-серверний застосунок для керування записами користувачів із підрозділами та службовими записами. Реалізація виконана відповідно до C4-діаграм (контейнерна, дві компонентні та діаграма послідовності) і повторює описаний в них поділ на шари.
 
@@ -166,6 +174,27 @@ UsersListPage  →  usersService.loadUsers(query)
 | `npm run build`     | Збірка для продакшену                         |
 | `npm run preview`   | Локальний попередній перегляд продакшн-збірки |
 | `npm run typecheck` | Перевірка типів без компіляції                |
+
+## Практична робота 06 — Redux Toolkit (окремий клієнт)
+
+Реалізовано в [client-redux/](client-redux) — повністю окремий проєкт із власним `package.json` і портом 5174. Backend і `client/` не змінено.
+
+- `configureStore` + два slice (`usersSlice` + `uiSlice`)
+- 5 async thunks (`fetchUsers`, `fetchUserById`, `createUser`, `updateUser`, `deleteUser`)
+- Окремий API-модуль (`api/httpClient.ts`, `api/usersApi.ts`)
+- Типізовані `useAppSelector` / `useAppDispatch`
+- Персистентність UI-параметрів (search, page, sort, order, selectedUserId) у `localStorage`
+- Інвалідація списку після CRUD через лічильник `dataVersion`
+- Індикація `loading` / `success` / `error` через `StatusCard`, `ErrorMessage` і disabled-кнопки
+
+Запуск:
+```bash
+cd client-redux
+npm install
+npm run dev   # http://localhost:5174
+```
+
+Деталі архітектури — у [client-redux/README.md](client-redux/README.md).
 
 ## Практична робота 05 — Централізований стан клієнта
 
